@@ -111,7 +111,10 @@ def figures(df, d, fd):
             bx.text(i, row['max'] + 0.03, f"n={int(row['count'])}", ha='center')
         bx.set_ylim(0, 1.1)
         bx.set_xlabel('real-time factor'); bx.set_ylabel('PX4 seconds from gap start to leaving offboard')
-        bx.set_title('Failsafe latency in PX4 time (flat = timeout runs in PX4 time)')
+        bx.set_title('Failsafe latency in PX4 time')
+        late = rt[rt.offboard_lost & (rt.failsafe_latency_s > rt.gap_len + 0.15)]
+        fig.text(0.99, 0.005, f'Flat bars = the timeout runs in PX4 time. Left out: {len(late)} failsafes that fired after the '
+                 'stream had resumed (all at 0.25x).', ha='right', fontsize=9, color=GREY)
         fig.tight_layout(); fig.savefig(os.path.join(fd, 'fig3_realtime_factor.png'), dpi=200); plt.close(fig)
 
     ex = os.path.join(d, 'demo.csv')
