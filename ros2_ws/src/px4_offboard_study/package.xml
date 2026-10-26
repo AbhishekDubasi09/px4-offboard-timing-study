@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>px4_offboard_study</name>
+  <version>0.1.0</version>
+  <description>PX4 SITL offboard control nodes and setpoint-stream timing study</description>
+  <maintainer email="dubasiabhishek@gmail.com">Abhishek Dubasi</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>
+  <depend>px4_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <export><build_type>ament_python</build_type></export>
+</package>
