@@ -1,0 +1,13 @@
+{
+  "rate_hz": 10.0,
+  "jitter_std": 0.0,
+  "gap_start": -1.0,
+  "gap_len": 0.0,
+  "seed": 1,
+  "messages_sent": 348,
+  "gap_onset_s": null,
+  "offboard_lost": false,
+  "exit_time_s": null,
+  "exit_nav_state": null,
+  "completed_track": true
+}

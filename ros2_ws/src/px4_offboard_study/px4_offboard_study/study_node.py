@@ -76,8 +76,11 @@ class StudyNode(Px4Link):
             self.send_setpoint(velocity=(self.cmd[0], self.cmd[1], 0.0), yaw=self.yaw_target)
         else:
             self.send_setpoint(position=(0.0, 0.0, z), yaw=self.yaw_target)
+        # Anchor the schedule on the previous due time, not on `now`, so the achieved rate equals
+        # rate_hz instead of being quantised by the 10 ms tick. After a stall or gap, resume at once.
         period = 1.0 / self.rate_hz
-        self.next_send = now + max(0.001, random.gauss(period, self.jitter_std)) if self.jitter_std else now + period
+        step = max(0.001, random.gauss(period, self.jitter_std)) if self.jitter_std else period
+        self.next_send = max(self.next_send + step, now)
         self.n_sent += 1
         self.sent_tick = 1
         return 1
@@ -161,6 +164,8 @@ class StudyNode(Px4Link):
         result = {
             'rate_hz': self.rate_hz, 'jitter_std': self.jitter_std, 'gap_start': self.gap_start,
             'gap_len': self.gap_len, 'seed': self.seed, 'messages_sent': self.n_sent,
+            'gap_onset_s': (self.track_t0 - self.t_start + self.gap_start)
+            if self.track_t0 is not None and self.gap_start >= 0 else None,
             'offboard_lost': self.exit_time is not None,
             'exit_time_s': self.exit_time, 'exit_nav_state': self.exit_nav,
             'completed_track': self.track_t0 is not None,

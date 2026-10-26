@@ -1,0 +1,16 @@
+{
+  "rate_hz": 50.0,
+  "jitter_std": 0.0,
+  "gap_start": 3.5,
+  "gap_len": 1.0,
+  "seed": 0,
+  "messages_sent": 3246,
+  "gap_onset_s": 51.401858162998906,
+  "offboard_lost": false,
+  "exit_time_s": null,
+  "exit_nav_state": null,
+  "completed_track": true,
+  "rtf_px4_mono": 0.24994428459901213,
+  "step": 0.002,
+  "load_threads": 0
+}

@@ -1,0 +1,3 @@
+run,cond,rate_hz,jitter_std,gap_start,gap_len,seed,messages_sent,gap_onset_s,offboard_lost,exit_time_s,exit_nav_state,completed_track,rtf_px4_mono,step,load_threads,px4_params,rtf,max_gap_s,rms_vel_err,max_gap_px4_s
+demo,demo,19.99992000032,0.0,-1.0,0.0,0,675,,False,,,True,0.9999019178325945,0.004,0,[],0.9999019178325945,0.06009999999999849,0.4795156748539544,0.06009410526173742
+demo_realtime,demo_realtime,20.0,0.0,-1.0,0.0,0,673,,False,,,True,1.0000818625395782,0.008,0,[],1.0000818625395782,0.060399999999999565,0.47740066494569594,0.06040494449739009

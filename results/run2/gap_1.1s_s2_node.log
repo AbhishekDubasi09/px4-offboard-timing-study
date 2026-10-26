@@ -1,0 +1,7 @@
+[INFO] [1793052603.204852971] [study_node]: phase -> takeoff
+[INFO] [1793052610.917675876] [study_node]: phase -> hold
+[INFO] [1793052613.927829910] [study_node]: phase -> turn
+[INFO] [1793052617.937816669] [study_node]: phase -> track
+[WARN] [1793052622.537909511] [study_node]: left offboard (nav_state 5) during track
+[INFO] [1793052622.538805211] [study_node]: phase -> land
+[INFO] [1793052633.398519989] [study_node]: result: {'rate_hz': 50.0, 'jitter_std': 0.0, 'gap_start': 3.5, 'gap_len': 1.1, 'seed': 2, 'messages_sent': 934, 'gap_onset_s': 18.651549723000244, 'offboard_lost': True, 'exit_time_s': 19.751584165999702, 'exit_nav_state': 5, 'completed_track': True}

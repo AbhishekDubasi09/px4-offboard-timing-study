@@ -1,0 +1,7 @@
+[INFO] [1793055037.865836787] [study_node]: phase -> takeoff
+[INFO] [1793055068.553024411] [study_node]: phase -> hold
+[INFO] [1793055071.561947258] [study_node]: phase -> turn
+[INFO] [1793055075.571956963] [study_node]: phase -> track
+[INFO] [1793055091.581982336] [study_node]: phase -> settle
+[INFO] [1793055093.592260030] [study_node]: phase -> land
+[INFO] [1793055133.603093991] [study_node]: result: {'rate_hz': 50.0, 'jitter_std': 0.0, 'gap_start': 3.5, 'gap_len': 1.0, 'seed': 0, 'messages_sent': 3246, 'gap_onset_s': 51.401858162998906, 'offboard_lost': False, 'exit_time_s': None, 'exit_nav_state': None, 'completed_track': True}

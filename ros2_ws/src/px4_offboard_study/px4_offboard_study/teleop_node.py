@@ -16,23 +16,9 @@ import rclpy
 from sensor_msgs.msg import Joy
 
 from px4_offboard_study.common import Px4Link, STEADY
+from px4_offboard_study.mathutil import body_to_ned, shape
 
 DT = 0.05
-
-
-def shape(v, deadzone, limit):
-    """Deadzone with rescale, then scale to the speed limit."""
-    if abs(v) < deadzone:
-        return 0.0
-    v = math.copysign((abs(v) - deadzone) / (1.0 - deadzone), v)
-    return max(-1.0, min(1.0, v)) * limit
-
-
-def body_to_ned(fwd, right, up, yaw):
-    """Body frame (forward, right, up) to NED (north, east, down) for heading `yaw`."""
-    vn = fwd * math.cos(yaw) - right * math.sin(yaw)
-    ve = fwd * math.sin(yaw) + right * math.cos(yaw)
-    return vn, ve, -up
 
 
 class Teleop(Px4Link):
@@ -69,6 +55,9 @@ class Teleop(Px4Link):
         self.inp = [shape(ax(a['fwd']), self.deadzone, self.max_h), shape(ax(a['right']), self.deadzone, self.max_h),
                     shape(ax(a['up']), self.deadzone, self.max_v), shape(-ax(a['yaw']), self.deadzone, self.max_yaw)]
         self.last_in = time.monotonic()
+        if msg.buttons and msg.buttons[0] and not self.is_landing:  # button 0 (A on most pads) lands
+            self.is_landing = True
+            self.land()
 
     def read_keys(self):
         while select.select([sys.stdin], [], [], 0)[0]:

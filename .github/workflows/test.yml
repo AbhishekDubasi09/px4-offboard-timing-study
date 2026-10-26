@@ -1,0 +1,14 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pytest numpy pandas matplotlib
+      - name: Unit tests (teleop maths, no ROS needed)
+        working-directory: ros2_ws/src/px4_offboard_study
+        run: PYTHONPATH=. pytest -q test

@@ -31,4 +31,24 @@
 - Metrics: time-to-failsafe, mode-retained flag, RMS/max tracking error, observed inter-arrival gap stats at PX4 (from `vehicle_control_mode`/timestamps).
 
 ## Build (demo = the project in the image)
-ROS 2 Jazzy + px4_msgs + `px4_offboard_study` package: `offboard_demo` (arm, takeoff, hold, turn, land), `velocity_node`, `joy_teleop` (deadzone, limits, body->NED), `keyboard_teleop`, and the `stream_degrader` + experiment runner for E1-E5.
+ROS 2 Jazzy + px4_msgs + `px4_offboard_study` package: `study_node` (arm, takeoff, hold, turn, velocity square, land, with
+configurable stream degradation and a per-tick log), `teleop_node` (joystick or keyboard, deadzone, limits, body-frame to NED),
+and `study/run_experiments.py` for the sweeps. The experiments as actually run are described in `FINDINGS.md`.
+
+## Status after the first round (2026-10-27)
+Short version of what was learned is in `FINDINGS.md`. Honest assessment: "the threshold is the documented timeout" is close
+to expected, so the question as written is an engineering characterisation, not new science. The parts with the most
+promise: (a) the failsafe delay lives in PX4 time, so thresholds measured in wall-clock Hz do not transfer between
+simulation speeds; (b) at slow simulation speed a second failure mode appears (failsafe after the stream resumed);
+(c) control quality degrades well before the failsafe.
+
+## Future work (pick one when revisiting the question)
+1. **Second autopilot.** Send identical degraded command streams to ArduPilot (GUIDED mode over MAVLink) and compare the
+   safe limits with PX4. I believe ArduPilot's guided-velocity timeout is longer (about 3 s) but this is unverified.
+2. **Clean re-run.** Re-run the rate, gap, jitter and load sweeps with `COM_OF_LOSS_T` pinned and the real-time factor
+   measured per run (runner already does this), at 1.0x speed. About 1.5 hours.
+3. **Quarter-speed failure mode.** Find out why failsafes fire after the stream resumed when PX4's clock is slow
+   (suspect XRCE timesync). Compare with `UXRCE_DDS_SYNCT 0`.
+4. **Real hardware.** Repeat the gap test on a real flight controller (HITL or a bench setup) to see which results survive.
+5. **Other degradations.** Packet reordering, partial loss (drop heartbeat but keep setpoints and the reverse),
+   and rclcpp versus rclpy under real-time scheduling.
