@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 
+import cine_audio
 import compose_video as cv
 from compose_video import FF
 
@@ -56,6 +57,9 @@ class Take:
         self.alt = -df.z.to_numpy()
         self.sph = np.hypot(df.vx, df.vy).to_numpy()
         self.nav = df.nav_state.to_numpy()
+        self.vx, self.vy, self.vz = df.vx.to_numpy(), df.vy.to_numpy(), df.vz.to_numpy()
+        self.heading = df.heading.to_numpy()
+        self.armed = pd.to_numeric(df.armed, errors='coerce').fillna(0).to_numpy()
         if 'sent' in df:
             self.sent_t = self.t[df.sent.to_numpy() == 1]
         else:   # joystick node streams on a 20 Hz timer
@@ -95,6 +99,8 @@ def act_source(key, gap):
     t.key, t.video, t.kind = key, os.path.join(cv.RAW, f'act_{key}.mp4'), 'gap'
     t.t, t.alt, t.sph, t.nav, t.sent_t, t.since = a.t, a.alt, a.sph, a.nav, a.sent_t, a.since
     t.exit_t, t.gap_on, t.gap_off, t.off, t.idx = a.exit_t, a.gap_on, a.gap_off, a.off, a.idx
+    t.vx, t.vy, t.vz = a.df.vx.to_numpy(), a.df.vy.to_numpy(), a.df.vz.to_numpy()
+    t.heading, t.armed = a.heading, pd.to_numeric(a.df.armed, errors='coerce').fillna(0).to_numpy()
     return t
 
 
@@ -238,6 +244,26 @@ def build_shots():
                       captions=[(ex + 0.1, ex + 2.3, 'Offboard lost. Return to launch.', True)]))
     shots.append(dict(src=C, a=ex + 2.4, b=ex + 8.0, speed=1.0, y0=70, push=(1.0, 1.0), counter=True, sound='C',
                       captions=[(ex + 2.6, ex + 7.6, 'After 1.0 s of silence PX4 takes the drone back', True)]))
+    # camera distance per shot (metres), used by the sound for level and brightness
+    def smooth3(x):
+        x = min(max(x, 0.0), 1.0)
+        return x * x * (3 - 2 * x)
+
+    def dist_a_static(t):
+        z = max(0.5, 0.45 + 4.35 * smooth3((t - 4.2) / 5.3))
+        return math.sqrt(2.7 ** 2 + 0.9 ** 2 + (z - 0.22) ** 2)
+
+    def dist_c(t):
+        pts = [(0.0, 13.5), (8.0, 13.5), (13.0, 6.6), (16.5, 4.6), (20.6, 2.8), (27.0, 8.9)]
+        return float(np.interp(t, [p[0] for p in pts], [p[1] for p in pts]))
+
+    shots[0]['dist'] = dist_a_static
+    shots[1]['dist'] = lambda t: 2.7
+    shots[2]['dist'] = lambda t: 3.3
+    shots[3]['dist'] = lambda t: 8.4
+    shots[4]['dist'] = lambda t: 4.2
+    for k in (5, 6, 7):
+        shots[k]['dist'] = dist_c if have_c else (lambda t: 4.2)
     return shots, have_c
 
 
@@ -400,9 +426,8 @@ def full(out_path):
     enc.stdin.close()
     enc.wait()
     total = ev['frames'] / FPS
-    json.dump({k: (list(map(list, v)) if k == 'air' else v) for k, v in ev.items()}, open(os.path.join(WORK, 'events.json'), 'w'))
     wav = os.path.join(WORK, 'cinema.wav')
-    synth(ev, total, wav)
+    cine_audio.render(audio_rows(shots), total, wav)
     tmp_out = out_path + '.part.mp4'
     subprocess.run([FF, '-y', '-i', tmp_v, '-i', wav, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp_out], check=True,
                    capture_output=True)
@@ -410,23 +435,53 @@ def full(out_path):
     print('done', out_path, f'{total:.1f} s', 'take_C used' if have_c else 'fallback C footage used')
 
 
+def audio_rows(shots):
+    """One row per output frame: time, thrust, forward and right acceleration, yaw rate, armed, camera distance."""
+    rows, frame = [], int(5.0 * FPS)
+    for s in shots:
+        src = s['src']
+        if not hasattr(src, '_sig'):
+            src._sig = cine_audio.motor_signals(src.t, src.alt, src.vx, src.vy, src.vz, src.heading, src.armed)
+        sig = src._sig
+        times = shot_times(s)
+        for k, t in enumerate(times):
+            i = src.idx(t)
+            rows.append(((frame + k) / FPS, sig['c'][i], sig['ax'][i], sig['ay'][i], sig['yaw'][i], 1.0, s['dist'](t)))
+        frame += len(times)
+    return np.array(rows)
+
+
+def video_seconds(path):
+    probe = FF.replace('ffmpeg.exe', 'ffprobe.exe')
+    out = subprocess.run([probe, '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', path],
+                         capture_output=True, text=True).stdout
+    return float(out.strip())
+
+
 def remix(out_path):
-    ev = json.load(open(os.path.join(WORK, 'events.json')))
-    ev['air'] = [tuple(a) for a in ev['air']]
-    ev['riser'] = tuple(ev['riser']) if ev['riser'] else None
-    total = ev['frames'] / FPS
+    """New drone sound on the saved picture, no re-render."""
+    shots, _ = build_shots()
+    video = os.path.join(WORK, 'cinema_video.mp4')
     wav = os.path.join(WORK, 'cinema.wav')
-    synth(ev, total, wav)
+    cine_audio.render(audio_rows(shots), video_seconds(video), wav)
     tmp_out = out_path + '.part.mp4'
-    subprocess.run([FF, '-y', '-i', os.path.join(WORK, 'cinema_video.mp4'), '-i', wav, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp_out],
+    subprocess.run([FF, '-y', '-i', video, '-i', wav, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp_out],
                    check=True, capture_output=True)
     os.replace(tmp_out, out_path)
     print('remixed', out_path)
 
 
+def silent(out_path):
+    tmp_out = out_path + '.part.mp4'
+    subprocess.run([FF, '-y', '-i', os.path.join(WORK, 'cinema_video.mp4'), '-c:v', 'copy', '-an', tmp_out], check=True, capture_output=True)
+    os.replace(tmp_out, out_path)
+    print('silent', out_path)
+
 if __name__ == '__main__':
     if sys.argv[1] == 'remix':
         remix(sys.argv[2])
+    elif sys.argv[1] == 'silent':
+        silent(sys.argv[2])
     elif sys.argv[1] == 'stills':
         stills(sys.argv[2])
     else:

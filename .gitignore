@@ -9,3 +9,4 @@ results/cinematic_raw/*.mp4
 results/**/*.mp4
 *.wav
 results/cinema_work/
+!results/videos/*.mp4

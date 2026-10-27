@@ -81,7 +81,7 @@ re-flown with the fix. Not tested: a physical gamepad, and the keyboard variant 
 
 ## 5b. Gazebo footage and rendering speed
 
-The showcase video (`px4_offboard_SHOWCASE_full_video.mp4`, three flights: joystick, 0.6 s stream gap, 1.5 s stream gap)
+The videos (`results/videos`, three flights: joystick, 0.6 s stream gap, 1.5 s stream gap)
 is real Gazebo footage recorded from the simulator window and synced to the logs (`study/compose_video.py` finds the
 offset by correlating on-screen motion with the logged speed, 6.0 to 6.4 s for all three).
 

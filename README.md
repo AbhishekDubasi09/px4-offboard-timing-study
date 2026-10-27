@@ -6,6 +6,19 @@ setpoint stream (rate, gaps, jitter, CPU load, simulation speed) affects offboar
 Start with `FINDINGS.md` for the results and their caveats. `RESEARCH_QUESTION.md` has the original question, the
 literature gaps and future work.
 
+## Demo
+
+[![Cinematic cut](docs/img/cinematic_poster.png)](results/videos/PX4_Offboard_Cinematic_silent.mp4)
+
+![The stream pauses, then PX4 takes the drone back](docs/img/failsafe_preview.gif)
+
+- **Cinematic cut, 78 s:** [silent](results/videos/PX4_Offboard_Cinematic_silent.mp4), or
+  [with a drone sound synthesised from the flight log](results/videos/PX4_Offboard_Cinematic_drone_sound.mp4).
+  A joystick flight, then the command stream is paused twice: 0.6 s (PX4 waits) and 1.5 s (PX4 takes the drone back).
+- **Analysis cut, 138 s:** [white background](results/videos/PX4_Offboard_Analysis_White.mp4). The same flights with the
+  gamepad, the silence counter against PX4's 1.0 s timeout, captions and three plots synced to the logs.
+- **The whole story** (what this is, why I built it, the technical challenges and how I solved them, what I learned):
+  [PROJECT_STORY.md](PROJECT_STORY.md).
 ## What is in here
 
 | Path | Content |
@@ -48,8 +61,9 @@ The raw recordings are not in git (large, and a desktop capture can pick up othe
 - **Analysis cut** (`study/compose_final.py`, palettes A black and D paper): footage, gamepad, silence counter, captions and
   three plots synced to the logs. Typeface: IBM Plex Mono (`study/assets/fonts`, SIL Open Font License).
 - **Cinematic cut** (`study/compose_cinema.py`): 2.39:1 letterbox, a restrained grade, slow motion at the key moments, a
-  scripted camera operator (`study/camera_director.py`: tilt-up, chase, orbit, top-down, push-in) and a sound track built
-  from the message stream: a tick for every fifth setpoint, silence when the stream pauses, a riser and a hit at the timeout.
+  scripted camera operator (`study/camera_director.py`: tilt-up, chase, orbit, top-down, push-in). One version has a drone
+  sound synthesised from the flight log (`study/cine_audio.py`): blade-pass pitch from the logged thrust and acceleration,
+  four detuned motors, louder and brighter when the camera is close.
 
 ```bash
 # in Ubuntu WSL: world and texture, then simulator, agent and GUI on the AMD GPU
