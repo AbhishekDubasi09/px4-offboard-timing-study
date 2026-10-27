@@ -5,6 +5,7 @@ Usage: python compose_cinema.py stills <out_dir>     one frame per shot, to judg
        python compose_cinema.py full <out.mp4>        the finished film
 Sources: results/cinematic_raw/take_A (+ take_C if present), results/showcase_raw acts. Sync is found from the footage.
 """
+import json
 import math
 import os
 import subprocess
@@ -28,6 +29,7 @@ FH_ = 804                      # footage height inside the letterbox (2.39:1)
 FY = (H - FH_) // 2
 BG, FG, MUTED, ACCENT = (0, 0, 0), (236, 236, 236), (128, 128, 128), (230, 54, 24)
 SR = 48000
+WORK = os.path.join(ROOT, 'results', 'cinema_work')
 
 _f = {}
 
@@ -224,7 +226,7 @@ def build_shots():
                                 (19.4, 22.8, 'Each stick value becomes a velocity setpoint', False)]))
     shots.append(dict(src=A, a=25.6, b=36.6, speed=1.0, y0=60, push=(1.0, 1.0), sound='A',
                       captions=[(26.2, 35.8, 'Forward and yaw together. The conversion follows the heading.', False)]))
-    shots.append(dict(src=A, a=41.0, b=47.0, speed=1.25, y0=30, push=(1.0, 1.0), sound='A', captions=[]))
+    shots.append(dict(src=A, a=41.0, b=46.4, speed=1.25, y0=30, push=(1.4, 1.55), sound='A', captions=[]))
     g = B.gap_on
     shots.append(dict(src=B, a=g - 1.6, b=B.gap_off + 2.2, speed=0.55, y0=70, push=(1.0, 1.0), counter=True, sound='B',
                       captions=[(g - 1.4, g + 0.8, 'Pause the stream for 0.6 s', False),
@@ -309,13 +311,13 @@ def synth(events, total_s, path):
         alt = np.array([a[1] for a in events['air']])
         spd = np.array([a[2] for a in events['air']])
         env = np.interp(t, ot, 0.04 + 0.16 * alt + 0.10 * spd * alt, left=0, right=0)
-        bed += 0.11 * env * band_noise(n, 180, 1400, rng)
+        bed += 0.24 * env * band_noise(n, 180, 1400, rng)
     out = bed.copy()
     click = np.exp(-np.arange(int(0.012 * SR)) / (0.0025 * SR)) * np.sin(2 * np.pi * 1800 * np.arange(int(0.012 * SR)) / SR)
     for ot_ in events['ticks']:
         s = int(ot_ * SR)
         if s + len(click) < n:
-            out[s:s + len(click)] += 0.34 * click
+            out[s:s + len(click)] += 0.55 * click
     if events['riser']:
         a, b = events['riser']
         s, e = int(a * SR), int(b * SR)
@@ -334,8 +336,10 @@ def synth(events, total_s, path):
         out[s:end] += (0.75 * thump + 0.25 * burst + 0.10 * tail * np.exp(-tt * 1.8))[:end - s]
     fade = np.minimum(1.0, np.minimum(t / 1.5, (total_s - t) / 2.5))
     out *= fade
-    out = np.tanh(out * 1.4) * 0.75
-    out /= max(1e-9, np.abs(out).max()) / 0.7
+    # level the whole track to its typical loudness (the hit would otherwise set the master level), then soft-clip
+    p80 = np.percentile(np.abs(out[::10]), 80)
+    out = np.tanh(out * (0.12 / max(p80, 1e-9)))
+    out *= 0.80 / max(np.abs(out).max(), 1e-9)
     right = np.concatenate([np.zeros(int(0.0006 * SR)), out[:-int(0.0006 * SR)]])
     pcm = (np.stack([out, right], axis=1) * 32767).astype(np.int16)
     with wave.open(path, 'wb') as w:
@@ -371,7 +375,8 @@ def stills(out_dir):
 
 def full(out_path):
     shots, have_c = build_shots()
-    tmp_v = out_path + '.video.mp4'
+    os.makedirs(WORK, exist_ok=True)
+    tmp_v = os.path.join(WORK, 'cinema_video.mp4')
     enc = subprocess.Popen([FF, '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-', '-c:v', 'libx264',
                             '-preset', 'fast', '-threads', '6', '-crf', '17', '-pix_fmt', 'yuv420p', tmp_v], stdin=subprocess.PIPE)
     sink = lambda arr: enc.stdin.write(arr.tobytes())  # noqa: E731
@@ -390,24 +395,39 @@ def full(out_path):
         print('shot', n_, 'done', flush=True)
     card([('PX4 gives a companion computer 1.0 s of silence.', 40, FG, 330, 0.3),
           ('After that it takes the drone back.', 40, FG, 392, 1.4),
-          ('With the timeout set to 0.5, 1.0 and 2.0 s, PX4 left offboard 0.57, 1.05 and 2.0 s after the stream stopped.', 22, MUTED, 560, 3.0),
-          ('Simulation only: PX4 SITL with Gazebo, 2 to 3 runs per condition.', 22, MUTED, 604, 4.0)], 9.0)
+          ('With the timeout set to 0.5, 1.0 and 2.0 s, PX4 left offboard 0.57, 1.05 and 2.0 s after the stream stopped.', 25, FG, 540, 3.0),
+          ('Simulation only: PX4 SITL with Gazebo, 2 to 3 runs per condition.', 25, MUTED, 600, 4.0)], 9.0)
     enc.stdin.close()
     enc.wait()
     total = ev['frames'] / FPS
-    wav = out_path + '.wav'
+    json.dump({k: (list(map(list, v)) if k == 'air' else v) for k, v in ev.items()}, open(os.path.join(WORK, 'events.json'), 'w'))
+    wav = os.path.join(WORK, 'cinema.wav')
     synth(ev, total, wav)
     tmp_out = out_path + '.part.mp4'
     subprocess.run([FF, '-y', '-i', tmp_v, '-i', wav, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp_out], check=True,
                    capture_output=True)
     os.replace(tmp_out, out_path)
-    for p in (tmp_v, wav):
-        os.remove(p)
     print('done', out_path, f'{total:.1f} s', 'take_C used' if have_c else 'fallback C footage used')
 
 
+def remix(out_path):
+    ev = json.load(open(os.path.join(WORK, 'events.json')))
+    ev['air'] = [tuple(a) for a in ev['air']]
+    ev['riser'] = tuple(ev['riser']) if ev['riser'] else None
+    total = ev['frames'] / FPS
+    wav = os.path.join(WORK, 'cinema.wav')
+    synth(ev, total, wav)
+    tmp_out = out_path + '.part.mp4'
+    subprocess.run([FF, '-y', '-i', os.path.join(WORK, 'cinema_video.mp4'), '-i', wav, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', tmp_out],
+                   check=True, capture_output=True)
+    os.replace(tmp_out, out_path)
+    print('remixed', out_path)
+
+
 if __name__ == '__main__':
-    if sys.argv[1] == 'stills':
+    if sys.argv[1] == 'remix':
+        remix(sys.argv[2])
+    elif sys.argv[1] == 'stills':
         stills(sys.argv[2])
     else:
         full(sys.argv[2])
