@@ -184,10 +184,13 @@ def caption(act, t):
     if st == 'turn':
         return ('Yaw turn, 90 degrees', 'Still streaming at 20 Hz: one heartbeat and one setpoint every 50 ms.', 'info')
     gap_txt = f'{act.gap:g} s'
+    if act.exit_t and act.exit_t <= t < act.exit_t + 4.5:
+        return ('TIMEOUT: PX4 leaves offboard mode', 'After 1.0 s of silence PX4 assumes the companion computer has died and takes control: return-to-launch. This is the failsafe the heartbeat rule prevents.', 'alert')
     if st == 'track':
+        gap_end = act.gap_off if act.gap_off else float('inf')
         if act.gap_on and t < act.gap_on:
             return ('Velocity square at 20 Hz', 'Longest silence so far: 0.05 s. PX4 only complains after 1.0 s (COM_OF_LOSS_T): a 20x margin.', 'info')
-        if act.gap_off and t < act.gap_off and not (act.exit_t and t >= act.exit_t):
+        if t < gap_end and not (act.exit_t and t >= act.exit_t):
             return (f'TEST: the stream is paused for {gap_txt}', f'No message arrives. PX4 counts the silence against its {TIMEOUT_S:g} s offboard timeout. Watch the gauge (top right) and the stream plot.', 'warn')
         if act.exit_t and t >= act.exit_t:
             return ('TIMEOUT: PX4 leaves offboard mode', 'After 1.0 s of silence PX4 assumes the companion computer has died and takes control: return-to-launch. This is the failure the heartbeat rule prevents.', 'alert')
@@ -348,7 +351,7 @@ def draw_video_overlay(d, act, t, i, ring, tt, speed):
     rrect(d, (bx, by, bx + 220, by + 66), 8, fill=(13, 21, 32, 215), outline=TEAL, width=2)
     d.text((bx + 10, by + 5), lines[0], font=font(19, True), fill=TEXT)
     d.text((bx + 10, by + 33), lines[1], font=font(19), fill=BLUE)
-    tag = PHASE_TAG.get(act.stage[i], '')
+    tag = 'FAILSAFE RETURN' if (act.exit_t and act.exit_t <= t < act.exit_t + 4.5) else PHASE_TAG.get(act.stage[i], '')
     rrect(d, (VX + 14, VY + 14, VX + 34 + d.textlength(tag, font=font(22, True)), VY + 56), 8, fill=(13, 21, 32, 215), outline=BORDER, width=2)
     d.text((VX + 24, VY + 18), tag, font=font(22, True), fill=AMBER)
     if act.kind == 'gap' and act.gap_on and act.gap_on <= t:
@@ -584,8 +587,9 @@ def main():
                 Image.fromarray(frame).save(os.path.join(shots_dir, f'shot_{a.key}_{int(frac * 100)}.png'))
                 print('shot', a.key, frac)
         return
+    tmp_path = out_path + '.part.mp4'   # written here first; renamed only when ffmpeg finished cleanly
     writer = subprocess.Popen([FF, '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
-                               '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', out_path],
+                               '-c:v', 'libx264', '-preset', 'fast', '-threads', '6', '-crf', '18', '-pix_fmt', 'yuv420p', tmp_path],
                               stdin=subprocess.PIPE)
     for k in range(int(4.5 * FPS)):
         writer.stdin.write(fade(title, k, int(4.5 * FPS)).tobytes())
@@ -599,8 +603,11 @@ def main():
     for k in range(int(11 * FPS)):
         writer.stdin.write(fade(outro, k, int(11 * FPS)).tobytes())
     writer.stdin.close()
-    writer.wait()
-    print('done', out_path)
+    if writer.wait() == 0:
+        os.replace(tmp_path, out_path)
+        print('done', out_path)
+    else:
+        print('FAILED, partial file left at', tmp_path)
 
 
 if __name__ == '__main__':

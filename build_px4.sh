@@ -3,7 +3,9 @@
 set -e
 cd ~
 [ -d PX4-Autopilot ] || git clone --recursive --depth 1 https://github.com/PX4/PX4-Autopilot.git
-pip install --user --break-system-packages -r PX4-Autopilot/Tools/setup/requirements.txt
+# PX4's Python tools go into their own virtual environment so the system and user Python stay untouched.
+python3 -m venv --system-site-packages ~/px4_venv && source ~/px4_venv/bin/activate
+pip install -r PX4-Autopilot/Tools/setup/requirements.txt
 [ -d Micro-XRCE-DDS-Agent ] || git clone --depth 1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 (cd Micro-XRCE-DDS-Agent && mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j3)
 mkdir -p ~/px4_ws/src && cd ~/px4_ws/src
