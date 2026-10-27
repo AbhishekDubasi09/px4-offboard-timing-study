@@ -8,7 +8,7 @@ literature gaps and future work.
 
 ## Demo
 
-[![Cinematic cut](docs/img/cinematic_poster.png)](results/videos/PX4_Offboard_Cinematic_silent.mp4)
+[![Cinematic cut: click for the full video](docs/img/cinematic_reel.gif)](results/videos/PX4_Offboard_Cinematic_silent.mp4)
 
 ![The stream pauses, then PX4 takes the drone back](docs/img/failsafe_preview.gif)
 
