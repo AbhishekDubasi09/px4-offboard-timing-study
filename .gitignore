@@ -3,3 +3,5 @@ __pycache__/
 build/
 install/
 log/
+results/showcase_raw/*.mp4
+study/assets/checker.png

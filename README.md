@@ -39,6 +39,24 @@ cd study && python3 run_experiments.py final
 Topic names carry message versions in this PX4 build; if they differ in yours, check `ros2 topic list -t` and edit
 `common.py`.
 
+## Showcase video (real Gazebo footage)
+
+`px4_offboard_SHOWCASE_full_video.mp4` is built from three Gazebo flights (joystick, 0.6 s stream gap, 1.5 s stream gap)
+recorded from the simulator window and composed with the flight logs: gamepad overlay, silence gauge against the 1.0 s
+timeout, captions and three synced plots. The raw recordings are not in git (large); the logs are in `results/showcase_raw`.
+
+```bash
+# in Ubuntu WSL: world + texture, then simulator, agent and GUI on the AMD GPU
+bash study/install_showcase.sh && WORLD=showcase bash study/gui_session.sh
+bash study/gui_camera.sh -3 -3 1.6                  # follow camera offset (metres)
+bash study/gui_act.sh teleop A_teleop               # or: gui_act.sh gap B_gap0.6 0.6
+# in Windows: record the Gazebo window with ffmpeg ddagrab, then
+python study/compose_video.py out.mp4
+```
+
+`GALLIUM_DRIVER=d3d12` (set by the scripts) renders on the GPU; without it WSL falls back to the CPU and the window runs
+at about 4 frames per second.
+
 ## Tests
 
 ```bash

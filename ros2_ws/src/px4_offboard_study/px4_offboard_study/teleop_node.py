@@ -16,7 +16,7 @@ import rclpy
 from sensor_msgs.msg import Joy
 
 from px4_offboard_study.common import Px4Link, STEADY
-from px4_offboard_study.mathutil import body_to_ned, shape
+from px4_offboard_study.mathutil import body_to_ned, joy_to_input
 
 DT = 0.05
 
@@ -49,11 +49,7 @@ class Teleop(Px4Link):
         self.create_timer(DT, self.tick, clock=STEADY)
 
     def on_joy(self, msg):
-        def ax(i):
-            return msg.axes[i] if i < len(msg.axes) else 0.0
-        a = self.axes
-        self.inp = [shape(ax(a['fwd']), self.deadzone, self.max_h), shape(ax(a['right']), self.deadzone, self.max_h),
-                    shape(ax(a['up']), self.deadzone, self.max_v), shape(-ax(a['yaw']), self.deadzone, self.max_yaw)]
+        self.inp = list(joy_to_input(msg.axes, self.axes, self.deadzone, self.max_h, self.max_v, self.max_yaw))
         self.last_in = time.monotonic()
         if msg.buttons and msg.buttons[0] and not self.is_landing:  # button 0 (A on most pads) lands
             self.is_landing = True

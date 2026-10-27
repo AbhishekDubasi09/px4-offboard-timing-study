@@ -61,21 +61,37 @@ What this adds to the PX4 documentation ("send faster than 2 Hz"): the real rule
 
 ## 5. Joystick teleop check
 
-`results/teleop/`: `teleop_node` with `source:=joy`, driven by scripted `sensor_msgs/Joy` messages (no physical
-joystick was used). It takes off and holds under offboard control, then each stick command moves the drone as expected
-(`study/teleop_check.py`, figure `figures/fig_teleop_check.png`):
+`results/showcase_raw/act_A_teleop.csv` (and `results/teleop/` for the first, older check): `teleop_node` with
+`source:=joy`, driven by scripted `sensor_msgs/Joy` messages that replay smooth, human-like stick motions (no physical
+joystick). The node takes off and holds under offboard control, then each stick command moves the drone as expected:
 
 | Stick | Duration | Result |
 |---|---|---|
-| forward (full) | 4 s | moved 6.6 m along the nose direction (east here, the x500 spawns facing 90 degrees), mean speed 1.7 m/s against 2.0 m/s limit |
-| right (full) | 4 s | moved 6.7 m to the right of the nose (south), mean speed 1.7 m/s |
-| up (0.6) / down (-0.6) | 3 s each | +1.58 m / -1.60 m altitude |
-| yaw (full) | 4 s | turned 162 degrees (0.72 rad/s against 0.8 rad/s limit) |
-| button 0 | | landed and disarmed |
+| right stick forward | 4.5 s | 4.9 m along the nose direction (east here: the x500 spawns facing 90 degrees), peak 1.9 m/s against the 2.0 m/s limit |
+| right stick sideways | 4.5 s | 4.9 m to the right of the nose (south), peak 1.9 m/s |
+| left stick up / down | 3.5 s each | +1.27 m / -1.31 m altitude |
+| forward + yaw together | 11.5 s | carving turn, 7.6 m net displacement, speed 1.8 m/s |
+| button 0 | | landed from 4.4 m and disarmed |
 
-This verifies the body-frame to NED conversion and the deadzone and limits end to end in simulation.
-Not tested: a physical gamepad, and the keyboard variant (needs an interactive terminal).
+**Bug found while building the controller overlay.** On a real gamepad the ROS `joy` driver reports a stick pushed to
+the right as a negative value (left and up are positive). `teleop_node` handled that for yaw but not for the sideways
+axis, so a real pad would have strafed the wrong way. The first scripted check missed it because the script and the node
+shared the same wrong convention. Fixed in `on_joy`; the driver now sends what a real pad sends and the act above was
+re-flown with the fix. Not tested: a physical gamepad, and the keyboard variant (needs an interactive terminal).
 
+## 5b. Gazebo footage and rendering speed
+
+The showcase video (`px4_offboard_SHOWCASE_full_video.mp4`, three flights: joystick, 0.6 s stream gap, 1.5 s stream gap)
+is real Gazebo footage recorded from the simulator window and synced to the logs (`study/compose_video.py` finds the
+offset by correlating on-screen motion with the logged speed, 6.0 to 6.4 s for all three).
+
+- WSL2 rendered Gazebo on the CPU (`llvmpipe`) by default. That gave 4 distinct frames per second in the recording and
+  slowed the simulation to 0.90x real time. Setting `GALLIUM_DRIVER=d3d12` makes WSL use the AMD GPU: about 19 distinct
+  frames per second and 0.999x real time with the same scene and shadows. The session scripts set it.
+- The first world was dark, so the dark x500 blended into it. The showcase world (`study/make_showcase_world.py`) uses a
+  white and aqua checkerboard, bright coloured blocks and a light pad.
+- Act 3 shows the failsafe live: with the stream paused for 1.5 s PX4 left offboard (`nav_state 5`, return-to-launch)
+  1.18 s after the last setpoint (measured at the node's 100 Hz log); with 0.6 s it kept offboard mode.
 ## 6. Not done
 
 - No comparison with another autopilot (ArduPilot is the obvious next one). See `RESEARCH_QUESTION.md`, future work.
