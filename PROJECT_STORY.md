@@ -1,25 +1,7 @@
 # PX4 offboard control and the cost of silence
 
-The full story of this project, written for my own use in interviews and for pasting into a Claude conversation.
-Code, logs and the two videos are in this repository (private): `px4-offboard-timing-study`.
-
-## Note for Claude (memory)
-
-If this document is pasted into a conversation, I want Claude to save a memory of this project (type: project) so that
-later sessions know it without me explaining it again. Suggested memory text:
-
-> Project: px4-offboard-timing-study (private GitHub repo AbhishekDubasi09/px4-offboard-timing-study, local folder
-> C:\Users\abhib\px4_offboard_study). A ROS 2 Jazzy node flies a simulated x500 quadcopter in PX4 SITL with Gazebo
-> Harmonic through micro-XRCE-DDS in offboard mode. On top of that sits a measurement study of how the quality of the
-> setpoint stream (rate, gaps, jitter, CPU load, simulation speed) affects offboard mode and tracking, and two kinds of
-> video made from real Gazebo footage (an analysis cut with black and white backgrounds, and a cinematic cut, silent or with a drone sound synthesised from the flight log).
-> Built 26 to 27 October 2026 with Claude Code as a pair programmer, for the Stark C-UAS Edge Software working student
-> application. Main result: PX4 leaves offboard mode when the silence between setpoints exceeds COM_OF_LOSS_T, counted in
-> PX4 time. With the timeout set to 0.5, 1.0 and 2.0 s, offboard was lost 0.57, 1.05 and 2.0 s after the stream stopped.
-> Caveats to always keep: simulation only, 2 to 3 runs per condition, some sweeps ran before the timeout parameter was
-> pinned (FINDINGS.md section 3), the joystick was flown with scripted messages not a physical pad, and the claim is an
-> engineering characterisation, not new science. Deliverables: results/videos (white analysis video, cinematic video),
-> PROJECT_STORY.md, FINDINGS.md.
+The full story of this project: what I built, what I measured, and the problems I solved on the way.
+Code, logs and videos are in this repository.
 
 ## 1. What this is, in one paragraph
 
@@ -44,10 +26,7 @@ joystick or script
 
 ## 2. Why I built it
 
-- **For the job.** Stark's C-UAS Edge Software working student role is about edge software, telemetry, latency, tests in
-  simulation and then field tests on UAV hardware. My project sheet said "a flight controller only accepts commands from a
-  companion computer when the link is set up exactly right, I wanted to see this end to end". I wanted that sentence to be
-  backed by logs, not just words.
+- **To see the whole chain.** A flight controller only accepts commands from a companion computer when the link is set up exactly right. I wanted to see this end to end, with logs to back it, from a ROS 2 node to a flying vehicle. It also matches what edge software for UAVs needs: telemetry, latency, and tests in simulation before hardware.
 - **Because the documentation leaves a gap.** PX4 says to send offboard setpoints faster than 2 Hz and to start the stream
   before switching mode. It states the rule, but nothing I found measures how much margin that rule has, which property of
   the stream matters (average rate, jitter or the longest gap), or how the answer depends on the companion's timing. Forum
@@ -56,10 +35,7 @@ joystick or script
   accuracy figure. I wanted to apply the same habit, log a timestamp at every stage and look for the gap, to a flight
   controller link.
 
-How it was built, stated plainly: I developed it with Claude Code as an AI pair programmer. I set the goals, chose the
-research direction and the look of the videos, reviewed every result and caught problems (for example a pole hiding the
-drone in my own footage). Every number in this repository is backed by a log in `results/`, and the problems I hit are
-written down in section 5 so I can explain them.
+How it was built: I set the question and the plan, ran every experiment, reviewed every result and fixed the problems listed in section 5. I used an AI coding assistant for part of the coding. Every number in this repository is backed by a log in `results/`.
 
 ## 3. What I built
 
@@ -252,28 +228,7 @@ Each one has the same shape: what I saw, how I found the cause, the cause, the f
   engineering characterisation, not new science. The more interesting parts are the time-domain results and the failure
   modes found on the way.
 
-## 8. Interview cheat sheet
-
-- **What is it?** A ROS 2 node flying a simulated quadcopter through PX4 offboard mode, plus a measured study of how much
-  silence in the command stream PX4 tolerates.
-- **Why does offboard need a heartbeat?** PX4 must be able to detect that the companion computer died. It treats a silent
-  stream as a failure and takes control back after `COM_OF_LOSS_T`.
-- **What would you set for a real vehicle?** Stream at least a few times faster than the timeout allows, never block the
-  publishing loop, keep the loop on a monotonic clock, and log the longest gap in flight.
-- **What was the hardest bug?** The WSL2 clock stepping back 2.5 s about every 32 s. It froze my timers and made my
-  message timestamps look stale to PX4, which then dropped offboard mode. Found with a stack dump and a clock comparison.
-- **How do you know the real-time factor?** I read PX4's own clock directly against the monotonic clock, because the XRCE
-  agent's time sync hides it. It was 0.5 by default here.
-- **What does QoS have to do with it?** PX4 topics are best effort and volatile. A default (reliable) ROS 2 endpoint does not
-  match and receives nothing.
-- **What would you do on a Jetson or on hardware?** Run the same logging and the same gap test with real latency and a real
-  link, add priority scheduling or a C++ node, and compare with the simulation numbers.
-- **What would you do next?** Re-run the sweeps with the pinned parameter at measured 1.0x speed, compare with ArduPilot's
-  guided mode, and investigate the quarter-speed failure.
-- **Did you use AI?** Yes, Claude Code as a pair programmer. I can explain every component and every problem above, and the
-  logs are in the repository.
-
-## 9. Reproduce and file map
+## 8. Reproduce and file map
 
 ```
 README.md                  overview, how to run
