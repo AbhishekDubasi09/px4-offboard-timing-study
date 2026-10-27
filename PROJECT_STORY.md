@@ -66,12 +66,12 @@ written down in section 5 so I can explain them.
 | Part | What it does |
 |---|---|
 | `ros2_ws/src/px4_offboard_study` | ROS 2 package. `study_node` flies the sequence arm, offboard, climb to 5 m, hold, yaw turn, velocity square, land, with a configurable stream (rate, jitter, one dropped window) and a 100 Hz log. `teleop_node` flies by joystick or keyboard: deadzone, limits, body frame to NED. `common.py` holds the PX4 QoS, publishers and commands. `mathutil.py` has the pure maths with 14 unit tests. |
-| `study/run_experiments.py` | Experiment runner. Starts a fresh simulator, the agent and the node for every run, pins the PX4 parameters, measures PX4's own clock speed, writes CSV and JSON. |
-| `study/analyze.py` | Tables and figures from the logs. |
-| `study/camera_director.py` | A scripted camera operator for the Gazebo window: tilt-up, chase, orbit, top-down, push-in, at 30 updates per second. |
-| `study/compose_final.py` | The analysis video (palettes A black, D white): footage, gamepad, silence counter, captions and three plots, synced to the logs. |
-| `study/compose_cinema.py` | The cinematic video: 2.39:1 letterbox, a restrained grade, slow motion, and (in one version) a drone sound synthesised from the flight log, `study/cine_audio.py`. |
-| `study/make_showcase_world.py` | Generates the Gazebo world (checkerboard, flat markers, far-away blocks). |
+| `experiments/run_experiments.py` | Experiment runner. Starts a fresh simulator, the agent and the node for every run, pins the PX4 parameters, measures PX4's own clock speed, writes CSV and JSON. |
+| `experiments/analyze.py` | Tables and figures from the logs. |
+| `video/camera_director.py` | A scripted camera operator for the Gazebo window: tilt-up, chase, orbit, top-down, push-in, at 30 updates per second. |
+| `video/compose_final.py` | The analysis video (palettes A black, D white): footage, gamepad, silence counter, captions and three plots, synced to the logs. |
+| `video/compose_cinema.py` | The cinematic video: 2.39:1 letterbox, a restrained grade, slow motion, and (in one version) a drone sound synthesised from the flight log, `video/cine_audio.py`. |
+| `video/make_showcase_world.py` | Generates the Gazebo world (checkerboard, flat markers, far-away blocks). |
 | Tests and CI | 14 pytest tests on the stick mapping and conversions, run on every push. |
 
 ## 4. What I found (the short version)
@@ -101,7 +101,7 @@ Each one has the same shape: what I saw, how I found the cause, the cause, the f
   (`vehicle_status_v5`, `vehicle_local_position_v1`, `vehicle_command_v1`).
 - **Second layer:** after fixing the names there were silent errors such as "payload size 96 bytes is larger than 91".
   My `px4_msgs` package was a week older than the PX4 source I had compiled, so the two sides disagreed on the layout.
-- **Fix:** names set in one place, and `study/sync_msgs.sh` copies PX4's own message definitions into `px4_msgs` and rebuilds it.
+- **Fix:** names set in one place, and `setup/sync_msgs.sh` copies PX4's own message definitions into `px4_msgs` and rebuilds it.
 - **Lesson:** two repositories that look the same can disagree on a wire format, and the failure is silence, not an error.
 
 ### 5.2 PX4 refused to arm, then flew away
@@ -281,7 +281,7 @@ FINDINGS.md                results with caveats, problems and fixes
 RESEARCH_QUESTION.md       the question, the gaps in the literature, future work
 results/                   all logs, summaries and figures (final, run2, run4, run5, teleop, showcase_raw)
 results/videos/            PX4_Offboard_Analysis_White.mp4, PX4_Offboard_Cinematic.mp4
-study/                     experiment runner, analysis, video composers, camera director, world generator
+experiments/               experiment runner, analysis, scripted gamepad driver`nvideo/                     Gazebo world, camera director, video composers, drone sound`nsetup/                     environment and PX4 build scripts`ntools/                     small clock and environment checks
 ros2_ws/src/px4_offboard_study/   the ROS 2 package and its tests
 ```
 

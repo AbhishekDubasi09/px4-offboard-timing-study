@@ -43,8 +43,7 @@ What this adds to the PX4 documentation ("send faster than 2 Hz"): the real rule
   PX4 clock is slow) is likely but was not investigated.
 - `run2` also contains six `slowgap_*` runs. Their half-speed setting did not take effect, so they are plain repeats and
   carry no speed information.
-- `pilot_run` is the first sweep, made with an instrument that sent a nominal 50 Hz stream at only about 39 Hz and
-  placed the gap where it could not affect tracking. It is kept for completeness only.
+- The first sweep (`pilot_run`) used an instrument that sent a nominal 50 Hz stream at only about 39 Hz and put the gap where it could not affect tracking. It was removed; the fixed instrument produced `run2` onward.
 - Small samples (2-3 per condition), one vehicle model, simulation only, no real hardware.
 
 ## 4. Problems found and fixed on the way
@@ -52,7 +51,7 @@ What this adds to the PX4 documentation ("send faster than 2 Hz"): the real rule
 | Symptom | Cause | Fix |
 |---|---|---|
 | No data from PX4 | Topic names carry message versions in this PX4 build (`vehicle_status_v5`, `vehicle_local_position_v1`, `vehicle_command_v1`) | Names in `common.py`; check with `ros2 topic list -t` |
-| Silent payload-size errors, no data | `px4_msgs` was a week older than the PX4 source | `study/sync_msgs.sh` copies PX4's own definitions |
+| Silent payload-size errors, no data | `px4_msgs` was a week older than the PX4 source | `setup/sync_msgs.sh` copies PX4's own definitions |
 | Arming denied | No ground station in SITL | `NAV_DLL_ACT 0`, `COM_RC_IN_MODE 4` |
 | Offboard dropped for no reason; node froze 2.5 s | WSL2 wall clock is stepped back by 2.48 s about every 32 s; `rclpy` timers follow the wall clock | Steady-clock timers |
 | Offboard dropped after the clock step | Message timestamps came from the stepped wall clock and looked 2.5 s old | Timestamps anchored on the latest PX4 timestamp and advanced with the steady clock |
@@ -61,7 +60,7 @@ What this adds to the PX4 documentation ("send faster than 2 Hz"): the real rule
 
 ## 5. Joystick teleop check
 
-`results/showcase_raw/act_A_teleop.csv` (and `results/teleop/` for the first, older check): `teleop_node` with
+`results/showcase_raw/act_A_teleop.csv`: `teleop_node` with
 `source:=joy`, driven by scripted `sensor_msgs/Joy` messages that replay smooth, human-like stick motions (no physical
 joystick). The node takes off and holds under offboard control, then each stick command moves the drone as expected:
 
@@ -82,13 +81,13 @@ re-flown with the fix. Not tested: a physical gamepad, and the keyboard variant 
 ## 5b. Gazebo footage and rendering speed
 
 The videos (`results/videos`, three flights: joystick, 0.6 s stream gap, 1.5 s stream gap)
-is real Gazebo footage recorded from the simulator window and synced to the logs (`study/compose_video.py` finds the
+is real Gazebo footage recorded from the simulator window and synced to the logs (`video/compose_video.py` finds the
 offset by correlating on-screen motion with the logged speed, 6.0 to 6.4 s for all three).
 
 - WSL2 rendered Gazebo on the CPU (`llvmpipe`) by default. That gave 4 distinct frames per second in the recording and
   slowed the simulation to 0.90x real time. Setting `GALLIUM_DRIVER=d3d12` makes WSL use the AMD GPU: about 19 distinct
   frames per second and 0.999x real time with the same scene and shadows. The session scripts set it.
-- The first world was dark, so the dark x500 blended into it. The showcase world (`study/make_showcase_world.py`) uses a
+- The first world was dark, so the dark x500 blended into it. The showcase world (`video/make_showcase_world.py`) uses a
   white and aqua checkerboard, bright coloured blocks and a light pad.
 - Act 3 shows the failsafe live: with the stream paused for 1.5 s PX4 left offboard (`nav_state 5`, return-to-launch)
   1.18 s after the last setpoint (measured at the node's 100 Hz log); with 0.6 s it kept offboard mode.
