@@ -39,24 +39,30 @@ cd study && python3 run_experiments.py final
 Topic names carry message versions in this PX4 build; if they differ in yours, check `ros2 topic list -t` and edit
 `common.py`.
 
-## Showcase video (real Gazebo footage)
+## Videos (real Gazebo footage)
 
-`px4_offboard_SHOWCASE_full_video.mp4` is built from three Gazebo flights (joystick, 0.6 s stream gap, 1.5 s stream gap)
-recorded from the simulator window and composed with the flight logs: gamepad overlay, silence gauge against the 1.0 s
-timeout, captions and three synced plots. The raw recordings are not in git (large); the logs are in `results/showcase_raw`.
+Three flights recorded from the Gazebo window (joystick, stream paused for 0.6 s, stream paused for 1.5 s), edited two ways.
+The raw recordings are not in git (large, and a desktop capture can pick up other windows); the flight logs are in
+`results/showcase_raw` and `results/cinematic_raw`.
+
+- **Analysis cut** (`study/compose_final.py`, palettes A black and D paper): footage, gamepad, silence counter, captions and
+  three plots synced to the logs. Typeface: IBM Plex Mono (`study/assets/fonts`, SIL Open Font License).
+- **Cinematic cut** (`study/compose_cinema.py`): 2.39:1 letterbox, a restrained grade, slow motion at the key moments, a
+  scripted camera operator (`study/camera_director.py`: tilt-up, chase, orbit, top-down, push-in) and a sound track built
+  from the message stream: a tick for every fifth setpoint, silence when the stream pauses, a riser and a hit at the timeout.
 
 ```bash
-# in Ubuntu WSL: world + texture, then simulator, agent and GUI on the AMD GPU
+# in Ubuntu WSL: world and texture, then simulator, agent and GUI on the AMD GPU
 bash study/install_showcase.sh && WORLD=showcase bash study/gui_session.sh
-bash study/gui_camera.sh -3 -3 1.6                  # follow camera offset (metres)
 bash study/gui_act.sh teleop A_teleop               # or: gui_act.sh gap B_gap0.6 0.6
-# in Windows: record the Gazebo window with ffmpeg ddagrab, then
-python study/compose_video.py out.mp4
+# in Windows: record the Gazebo window with ffmpeg ddagrab (nothing else may be on top of it), then
+python study/compose_final.py full A out_A.mp4      # or D
+python study/compose_cinema.py full out_cinema.mp4
 ```
 
-`GALLIUM_DRIVER=d3d12` (set by the scripts) renders on the GPU; without it WSL falls back to the CPU and the window runs
-at about 4 frames per second.
-
+`GALLIUM_DRIVER=d3d12` (set by the scripts) renders on the GPU; without it WSL falls back to the CPU and the window runs at
+about 4 frames per second. The world (`study/make_showcase_world.py`) keeps everything that stands up far from the flight
+path, so the follow camera never has something between it and the drone.
 ## Tests
 
 ```bash

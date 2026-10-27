@@ -92,6 +92,10 @@ offset by correlating on-screen motion with the logged speed, 6.0 to 6.4 s for a
   white and aqua checkerboard, bright coloured blocks and a light pad.
 - Act 3 shows the failsafe live: with the stream paused for 1.5 s PX4 left offboard (`nav_state 5`, return-to-launch)
   1.18 s after the last setpoint (measured at the node's 100 Hz log); with 0.6 s it kept offboard mode.
+- Two recording mistakes worth remembering: standing posts next to the flight path put a pole between the follow camera and the
+  drone, and a desktop capture records whatever window is on top. The final world uses flat floor markers and blocks 30 to 46 m
+  away, and every recording is checked frame by frame before it is used.
+
 ## 6. Not done
 
 - No comparison with another autopilot (ArduPilot is the obvious next one). See `RESEARCH_QUESTION.md`, future work.
