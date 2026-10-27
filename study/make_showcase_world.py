@@ -52,12 +52,11 @@ def visual_model(name, x, y, z, geom, color, emissive=None, yaw=0.0):
 
 def objects():
     out = []
-    post = '<cylinder><radius>0.1</radius><length>2.6</length></cylinder>'
-    ball = '<sphere><radius>0.22</radius></sphere>'
+    # Flat discs on the floor mark the corners and the centre of the 4 m flight square. Nothing stands up near the
+    # flight path, so the follow camera never has something between it and the drone.
+    disc = '<cylinder><radius>0.35</radius><length>0.02</length></cylinder>'
     for k, (x, y) in enumerate([(0, 4), (4, 4), (4, 0), (2, 2)]):
-        col = '#ff702d' if k < 3 else '#2a7de1'
-        out.append(visual_model(f'post{k}', x, y, 1.3, post, col))
-        out.append(visual_model(f'beacon{k}', x, y, 2.75, ball, '#e0fbfc', emissive='#7fe3ff'))
+        out.append(visual_model(f'marker{k}', x, y, 0.02, disc, '#ff702d' if k < 3 else '#2a7de1'))
     out.append(visual_model('pad_ring', 0, 0, 0.012, '<cylinder><radius>1.35</radius><length>0.02</length></cylinder>', '#ff702d'))
     out.append(visual_model('pad', 0, 0, 0.024, '<cylinder><radius>1.2</radius><length>0.02</length></cylinder>', '#e6eef5'))
     out.append(visual_model('pad_h', 0, 0, 0.036, '<box><size>0.9 0.16 0.02</size></box>', '#ff702d'))
@@ -65,8 +64,8 @@ def objects():
     rng = random.Random(7)
     for k in range(22):
         ang = rng.uniform(0, 2 * math.pi)
-        r = rng.uniform(13, 33)
-        sx, sy, h = rng.uniform(1.2, 3.2), rng.uniform(1.2, 3.2), rng.uniform(1.0, 7.5)
+        r = rng.uniform(30, 46)   # far outside any camera path
+        sx, sy, h = rng.uniform(2.0, 5.5), rng.uniform(2.0, 5.5), rng.uniform(2.5, 11.0)
         out.append(visual_model(f'block{k}', round(r * math.cos(ang), 2), round(r * math.sin(ang), 2), h / 2,
                                 f'<box><size>{sx:.2f} {sy:.2f} {h:.2f}</size></box>', rng.choice(PALETTE),
                                 yaw=round(rng.uniform(0, 3.14), 2)))
