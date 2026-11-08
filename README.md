@@ -1,4 +1,6 @@
-# px4-offboard-timing-study
+# When the Setpoints Stop: a PX4 Offboard Timing Study
+
+*Repository: `px4-offboard-timing-study`. Simulation only.*
 
 PX4 SITL offboard flight control from ROS 2 (Jazzy, Gazebo Harmonic x500), plus a measurement of how the quality of the
 setpoint stream (rate, gaps, jitter, CPU load, simulation speed) affects offboard mode and tracking.
